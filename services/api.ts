@@ -2,9 +2,22 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // region: --- Interface Definitions ---
 export interface DoubanItem {
+  id?: string;
   title: string;
   poster: string;
   rate?: string;
+  year?: string;
+}
+
+// 类型 / 年份 筛选入参（对应服务端 /api/douban/filter）
+export interface DoubanFilterParams {
+  kind: "movie" | "tv" | "show";
+  category?: string;
+  region?: string;
+  genre?: string;
+  year?: string;
+  pageSize?: number;
+  pageStart?: number;
 }
 
 export interface DoubanResponse {
@@ -229,6 +242,27 @@ export class API {
     pageStart: number = 0
   ): Promise<DoubanResponse> {
     const url = `/api/douban?type=${type}&tag=${encodeURIComponent(tag)}&pageSize=${pageSize}&pageStart=${pageStart}`;
+    const response = await this._fetch(url);
+    return response.json();
+  }
+
+  // 按「分类 / 类型 / 年份」筛选电影、剧集、综艺（每页固定 20 条）
+  async getDoubanFilter(params: DoubanFilterParams): Promise<DoubanResponse> {
+    const {
+      kind,
+      category = "热门",
+      region = "全部",
+      genre = "全部",
+      year = "全部",
+      pageStart = 0,
+    } = params;
+    const url =
+      `/api/douban/filter?kind=${kind}` +
+      `&category=${encodeURIComponent(category)}` +
+      `&region=${encodeURIComponent(region)}` +
+      `&genre=${encodeURIComponent(genre)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&start=${pageStart}`;
     const response = await this._fetch(url);
     return response.json();
   }
