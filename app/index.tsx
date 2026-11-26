@@ -8,7 +8,13 @@ import VideoCard from "@/components/VideoCard";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Search, Settings, LogOut, Heart } from "lucide-react-native";
 import { StyledButton } from "@/components/StyledButton";
-import useHomeStore, { RowItem, Category } from "@/stores/homeStore";
+import useHomeStore, {
+  RowItem,
+  Category,
+  FILTER_CATEGORY_OPTIONS,
+  FILTER_YEAR_OPTIONS,
+  getGenreOptions,
+} from "@/stores/homeStore";
 import useAuthStore from "@/stores/authStore";
 import CustomScrollView from "@/components/CustomScrollView";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
@@ -275,7 +281,50 @@ export default function HomeScreen() {
     contentContainer: {
       flex: 1,
     },
+    filterRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing,
+    },
+    filterLabel: {
+      width: deviceType === "tv" ? 44 : 36,
+      fontSize: deviceType === "mobile" ? 12 : 14,
+      opacity: 0.65,
+    },
+    filterList: {
+      flex: 1,
+    },
   });
+
+  // 筛选行（分类 / 类型 / 年份），仅在 filterKind 分类下渲染
+  const renderFilterRow = (
+    label: string,
+    options: string[],
+    current: string,
+    onSelect: (value: string) => void
+  ) => (
+    <View style={dynamicStyles.filterRow}>
+      <ThemedText style={dynamicStyles.filterLabel}>{label}</ThemedText>
+      <FlatList
+        data={options}
+        renderItem={({ item }) => (
+          <StyledButton
+            text={item}
+            onPress={() => onSelect(item)}
+            isSelected={current === item}
+            style={dynamicStyles.categoryButton}
+            textStyle={dynamicStyles.categoryText}
+            variant="ghost"
+          />
+        )}
+        keyExtractor={(item) => `${label}-${item}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={dynamicStyles.categoryListContent}
+        style={dynamicStyles.filterList}
+      />
+    </View>
+  );
 
   const content = (
     <ThemedView style={[commonStyles.container, dynamicStyles.container]}>
@@ -296,6 +345,32 @@ export default function HomeScreen() {
           contentContainerStyle={dynamicStyles.categoryListContent}
         />
       </View>
+
+      {/* 三段筛选：分类 / 类型 / 年份 */}
+      {selectedCategory && selectedCategory.filterKind && (
+        <>
+          {renderFilterRow(
+            "分类",
+            FILTER_CATEGORY_OPTIONS,
+            selectedCategory.filterCategory || "热门",
+            (value) =>
+              selectCategory({ ...selectedCategory, filterCategory: value })
+          )}
+          {renderFilterRow(
+            "类型",
+            getGenreOptions(selectedCategory.filterKind),
+            selectedCategory.filterGenre || "全部",
+            (value) =>
+              selectCategory({ ...selectedCategory, filterGenre: value })
+          )}
+          {renderFilterRow(
+            "年份",
+            FILTER_YEAR_OPTIONS,
+            selectedCategory.filterYear || "全部",
+            (value) => selectCategory({ ...selectedCategory, filterYear: value })
+          )}
+        </>
+      )}
 
       {/* 子分类标签 */}
       {selectedCategory && selectedCategory.tags && (
