@@ -24,34 +24,113 @@ export interface Category {
   type?: "movie" | "tv" | "record";
   tag?: string;
   tags?: string[];
+  // 三段筛选（分类 / 类型 / 年份），走服务端 /api/douban/filter
+  filterKind?: "movie" | "tv" | "show";
+  filterCategory?: string;
+  filterGenre?: string;
+  filterYear?: string;
 }
+
+// ---------- 筛选选项 ----------
+
+export const FILTER_CATEGORY_OPTIONS = ["热门", "最新", "豆瓣高分", "冷门佳片"];
+
+const YEAR_OPTIONS = [
+  "全部",
+  "2026",
+  "2025",
+  "2024",
+  "2023",
+  "2022",
+  "2021",
+  "2020",
+  "2020年代",
+  "2010年代",
+  "2000年代",
+  "90年代",
+  "更早",
+];
+
+export const MOVIE_GENRE_OPTIONS = [
+  "全部",
+  "剧情",
+  "喜剧",
+  "动作",
+  "爱情",
+  "科幻",
+  "动画",
+  "悬疑",
+  "惊悚",
+  "恐怖",
+  "犯罪",
+  "纪录片",
+  "奇幻",
+  "冒险",
+  "武侠",
+  "历史",
+  "战争",
+  "传记",
+  "音乐",
+  "家庭",
+  "儿童",
+  "其他",
+];
+
+export const TV_GENRE_OPTIONS = [
+  "全部",
+  "剧情",
+  "喜剧",
+  "爱情",
+  "科幻",
+  "悬疑",
+  "惊悚",
+  "犯罪",
+  "动画",
+  "历史",
+  "战争",
+  "奇幻",
+  "冒险",
+  "传记",
+  "古装",
+  "武侠",
+  "家庭",
+  "纪录片",
+  "其他",
+];
+
+export const SHOW_GENRE_OPTIONS = [
+  "全部",
+  "真人秀",
+  "脱口秀",
+  "访谈",
+  "纪实",
+  "选秀",
+  "其他",
+];
+
+export const FILTER_YEAR_OPTIONS = YEAR_OPTIONS;
+
+export function getGenreOptions(kind: "movie" | "tv" | "show"): string[] {
+  if (kind === "tv") return TV_GENRE_OPTIONS;
+  if (kind === "show") return SHOW_GENRE_OPTIONS;
+  return MOVIE_GENRE_OPTIONS;
+}
+
+const filterCategory = (title: string, kind: "movie" | "tv" | "show"): Category => ({
+  title,
+  type: kind === "movie" ? "movie" : "tv",
+  filterKind: kind,
+  filterCategory: "热门",
+  filterGenre: "全部",
+  filterYear: "全部",
+});
 
 const initialCategories: Category[] = [
   { title: "最近播放", type: "record" },
   { title: "热门剧集", type: "tv", tag: "热门" },
-  { title: "电视剧", type: "tv", tags: ["国产剧", "美剧", "英剧", "韩剧", "日剧", "港剧", "日本动画", "动画"] },
-  {
-    title: "电影",
-    type: "movie",
-    tags: [
-      "热门",
-      "最新",
-      "经典",
-      "豆瓣高分",
-      "冷门佳片",
-      "华语",
-      "欧美",
-      "韩国",
-      "日本",
-      "动作",
-      "喜剧",
-      "爱情",
-      "科幻",
-      "悬疑",
-      "恐怖",
-    ],
-  },
-  { title: "综艺", type: "tv", tag: "综艺" },
+  filterCategory("剧集", "tv"),
+  filterCategory("电影", "movie"),
+  filterCategory("综艺", "show"),
   { title: "豆瓣 Top250", type: "movie", tag: "top250" },
 ];
 
@@ -68,7 +147,10 @@ const MAX_CACHE_SIZE = 10; // 最大缓存容量
 const MAX_ITEMS_PER_CACHE = 40; // 每个缓存最大条目数
 
 const getCacheKey = (category: Category) => {
-  return `${category.type || 'unknown'}-${category.title}-${category.tag || ''}`;
+  const filterPart = category.filterKind
+    ? `-${category.filterCategory || ""}-${category.filterGenre || ""}-${category.filterYear || ""}`
+    : "";
+  return `${category.type || 'unknown'}-${category.title}-${category.tag || ''}${filterPart}`;
 };
 
 const isValidCache = (cacheItem: CacheItem) => {
@@ -171,13 +253,24 @@ const useHomeStore = create<HomeState>((set, get) => ({
           .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
 
         set({ contentData: rowItems, hasMore: false });
-      } else if (selectedCategory.type && selectedCategory.tag) {
-        const result = await api.getDoubanData(
-          selectedCategory.type,
-          selectedCategory.tag,
-          20,
-          pageStart
-        );
+      } else if (
+        selectedCategory.filterKind ||
+        (selectedCategory.type && selectedCategory.tag)
+      ) {
+        const result = selectedCategory.filterKind
+          ? await api.getDoubanFilter({
+              kind: selectedCategory.filterKind,
+              category: selectedCategory.filterCategory || "热门",
+              genre: selectedCategory.filterGenre || "全部",
+              year: selectedCategory.filterYear || "全部",
+              pageStart,
+            })
+          : await api.getDoubanData(
+              selectedCategory.type as "movie" | "tv",
+              selectedCategory.tag as string,
+              20,
+              pageStart
+            );
 
         const newItems = result.list.map((item) => ({
           ...item,
@@ -278,7 +371,7 @@ const useHomeStore = create<HomeState>((set, get) => ({
     const currentCategory = get().selectedCategory;
     const cacheKey = getCacheKey(category);
 
-    if (currentCategory.title !== category.title || currentCategory.tag !== category.tag) {
+    if (getCacheKey(currentCategory) !== cacheKey) {
       set({
         selectedCategory: category,
         contentData: [],
