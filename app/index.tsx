@@ -13,6 +13,7 @@ import useHomeStore, {
   Category,
   FILTER_CATEGORY_OPTIONS,
   FILTER_YEAR_OPTIONS,
+  REGION_OPTIONS,
   getGenreOptions,
 } from "@/stores/homeStore";
 import useAuthStore from "@/stores/authStore";
@@ -346,7 +347,7 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* 三段筛选：分类 / 类型 / 年份 */}
+      {/* 四段筛选：分类 / 类型 / 地区 / 年份 */}
       {selectedCategory && selectedCategory.filterKind && (
         <>
           {renderFilterRow(
@@ -362,6 +363,13 @@ export default function HomeScreen() {
             selectedCategory.filterGenre || "全部",
             (value) =>
               selectCategory({ ...selectedCategory, filterGenre: value })
+          )}
+          {renderFilterRow(
+            "地区",
+            REGION_OPTIONS,
+            selectedCategory.filterRegion || "全部",
+            (value) =>
+              selectCategory({ ...selectedCategory, filterRegion: value })
           )}
           {renderFilterRow(
             "年份",
