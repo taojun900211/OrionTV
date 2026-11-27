@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, FlatList, Pressable, Animated, StatusBar, Platform, BackHandler, ToastAndroid } from "react-native";
+import { View, StyleSheet, ActivityIndicator, FlatList, Pressable, Animated, StatusBar, Platform, BackHandler, ToastAndroid, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -286,6 +286,9 @@ export default function HomeScreen() {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: spacing,
+      // TV 上横向 FlatList 没有确定高度会塌成 0，导致右边的选项按钮整片不渲染，
+      // 只剩左边的「分类 / 类型 / 地区 / 年份」标签
+      height: deviceType === "tv" ? 56 : 48,
     },
     filterLabel: {
       width: deviceType === "tv" ? 44 : 36,
@@ -294,10 +297,14 @@ export default function HomeScreen() {
     },
     filterList: {
       flex: 1,
+      height: "100%",
     },
   });
 
-  // 筛选行（分类 / 类型 / 年份），仅在 filterKind 分类下渲染
+  // 筛选行（分类 / 类型 / 地区 / 年份），仅在 filterKind 分类下渲染
+  // 这里用 ScrollView + View 手排，不用 FlatList：
+  // Android TV 上横向 FlatList 会因为父容器高度/虚拟化裁剪把按钮整行吃掉，
+  // 只剩左侧标签，实测就是「分类 类型 地区 年份」四个字孤零零挂着。
   const renderFilterRow = (
     label: string,
     options: string[],
@@ -306,10 +313,19 @@ export default function HomeScreen() {
   ) => (
     <View style={dynamicStyles.filterRow}>
       <ThemedText style={dynamicStyles.filterLabel}>{label}</ThemedText>
-      <FlatList
-        data={options}
-        renderItem={({ item }) => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        removeClippedSubviews={false}
+        contentContainerStyle={[
+          dynamicStyles.categoryListContent,
+          { alignItems: "center" },
+        ]}
+        style={dynamicStyles.filterList}
+      >
+        {options.map((item) => (
           <StyledButton
+            key={`${label}-${item}`}
             text={item}
             onPress={() => onSelect(item)}
             isSelected={current === item}
@@ -317,13 +333,8 @@ export default function HomeScreen() {
             textStyle={dynamicStyles.categoryText}
             variant="ghost"
           />
-        )}
-        keyExtractor={(item) => `${label}-${item}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={dynamicStyles.categoryListContent}
-        style={dynamicStyles.filterList}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 
