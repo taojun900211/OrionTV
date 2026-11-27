@@ -24,9 +24,10 @@ export interface Category {
   type?: "movie" | "tv" | "record";
   tag?: string;
   tags?: string[];
-  // 三段筛选（分类 / 类型 / 年份），走服务端 /api/douban/filter
+  // 四段筛选（分类 / 类型 / 地区 / 年份），走服务端 /api/douban/filter
   filterKind?: "movie" | "tv" | "show";
   filterCategory?: string;
+  filterRegion?: string;
   filterGenre?: string;
   filterYear?: string;
 }
@@ -34,6 +35,29 @@ export interface Category {
 // ---------- 筛选选项 ----------
 
 export const FILTER_CATEGORY_OPTIONS = ["热门", "最新", "豆瓣高分", "冷门佳片"];
+
+// 地区：与服务端 /api/douban/filter 的 REGION_MAP 保持一致
+export const REGION_OPTIONS = [
+  "全部",
+  "华语",
+  "欧美",
+  "大陆",
+  "香港",
+  "台湾",
+  "美国",
+  "英国",
+  "法国",
+  "德国",
+  "意大利",
+  "西班牙",
+  "俄罗斯",
+  "加拿大",
+  "澳大利亚",
+  "韩国",
+  "日本",
+  "泰国",
+  "印度",
+];
 
 const YEAR_OPTIONS = [
   "全部",
@@ -121,6 +145,7 @@ const filterCategory = (title: string, kind: "movie" | "tv" | "show"): Category 
   type: kind === "movie" ? "movie" : "tv",
   filterKind: kind,
   filterCategory: "热门",
+  filterRegion: "全部",
   filterGenre: "全部",
   filterYear: "全部",
 });
@@ -148,7 +173,7 @@ const MAX_ITEMS_PER_CACHE = 40; // 每个缓存最大条目数
 
 const getCacheKey = (category: Category) => {
   const filterPart = category.filterKind
-    ? `-${category.filterCategory || ""}-${category.filterGenre || ""}-${category.filterYear || ""}`
+    ? `-${category.filterCategory || ""}-${category.filterRegion || ""}-${category.filterGenre || ""}-${category.filterYear || ""}`
     : "";
   return `${category.type || 'unknown'}-${category.title}-${category.tag || ''}${filterPart}`;
 };
@@ -261,6 +286,7 @@ const useHomeStore = create<HomeState>((set, get) => ({
           ? await api.getDoubanFilter({
               kind: selectedCategory.filterKind,
               category: selectedCategory.filterCategory || "热门",
+              region: selectedCategory.filterRegion || "全部",
               genre: selectedCategory.filterGenre || "全部",
               year: selectedCategory.filterYear || "全部",
               pageStart,
