@@ -232,6 +232,13 @@ export class API {
   }
 
   getImageProxyUrl(imageUrl: string): string {
+    if (!imageUrl) return "";
+    // 服务端返回的封面已经是 /api/poster/... 的代理地址（该路径自带长缓存）。
+    // 这里再包一层 /api/image-proxy?url= 会多一跳，电视网络下经常超时，
+    // 拿到的就是 1x1 透明占位图 → 屏幕上整片海报空白，所以直接原样使用。
+    if (/^https?:\/\/[^/]+\/api\/(poster|image-proxy)/.test(imageUrl)) {
+      return imageUrl;
+    }
     return `${this.baseURL}/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
   }
 
