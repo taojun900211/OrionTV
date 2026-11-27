@@ -38,6 +38,12 @@ export default function HomeScreen() {
   const commonStyles = getCommonResponsiveStyles(responsiveConfig);
   const { deviceType, spacing } = responsiveConfig;
 
+  // 每一条筛选行各自的横向 ScrollView，用于遥控焦点移动时自动跟随滚动
+  const filterScrollRefs = useRef<Record<string, ScrollView | null>>({});
+  // TV 下每个筛选按钮固定宽度，保证按焦点序号推算滚动位置是准确的
+  const TV_FILTER_BTN_WIDTH = 124;
+  const TV_FILTER_STEP = TV_FILTER_BTN_WIDTH + 8;
+
   const {
     categories,
     selectedCategory,
@@ -285,15 +291,39 @@ export default function HomeScreen() {
     filterRow: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: spacing,
       // TV 上横向 FlatList 没有确定高度会塌成 0，导致右边的选项按钮整片不渲染，
       // 只剩左边的「分类 / 类型 / 地区 / 年份」标签
-      height: deviceType === "tv" ? 56 : 48,
+      // 电视安全区边界会裁掉贴边内容，左右留够余量
+      paddingHorizontal: deviceType === "tv" ? spacing * 1.5 : spacing,
+      height: deviceType === "tv" ? 60 : 48,
     },
     filterLabel: {
-      width: deviceType === "tv" ? 44 : 36,
-      fontSize: deviceType === "mobile" ? 12 : 14,
-      opacity: 0.65,
+      width: deviceType === "tv" ? 64 : 36,
+      fontSize: deviceType === "mobile" ? 12 : 15,
+      opacity: 0.75,
+      paddingLeft: deviceType === "tv" ? 4 : 0,
+    },
+    filterScrollWrap: {
+      flex: 1,
+      height: "100%",
+      justifyContent: "center",
+    },
+    tvFilterButton: {
+      width: TV_FILTER_BTN_WIDTH,
+      marginHorizontal: 4,
+    },
+    moreHint: {
+      position: "absolute",
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 24,
+      justifyContent: "center",
+      alignItems: "flex-end",
+    },
+    moreHintText: {
+      fontSize: 20,
+      opacity: 0.45,
     },
     filterList: {
       flex: 1,
@@ -313,28 +343,51 @@ export default function HomeScreen() {
   ) => (
     <View style={dynamicStyles.filterRow}>
       <ThemedText style={dynamicStyles.filterLabel}>{label}</ThemedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        removeClippedSubviews={false}
-        contentContainerStyle={[
-          dynamicStyles.categoryListContent,
-          { alignItems: "center" },
-        ]}
-        style={dynamicStyles.filterList}
-      >
-        {options.map((item) => (
-          <StyledButton
-            key={`${label}-${item}`}
-            text={item}
-            onPress={() => onSelect(item)}
-            isSelected={current === item}
-            style={dynamicStyles.categoryButton}
-            textStyle={dynamicStyles.categoryText}
-            variant="ghost"
-          />
-        ))}
-      </ScrollView>
+      <View style={dynamicStyles.filterScrollWrap}>
+        <ScrollView
+          ref={(r) => {
+            filterScrollRefs.current[label] = r;
+          }}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          removeClippedSubviews={false}
+          contentContainerStyle={[
+            dynamicStyles.categoryListContent,
+            { alignItems: "center" },
+          ]}
+          style={dynamicStyles.filterList}
+        >
+          {options.map((item, index) => (
+            <StyledButton
+              key={`${label}-${item}`}
+              text={item}
+              onPress={() => onSelect(item)}
+              // 焦点走到屏幕外时自动把这一行横向滚过去，否则右侧选项永远看不到
+              onFocus={() => {
+                if (deviceType !== "tv") return;
+                const scroller = filterScrollRefs.current[label];
+                if (!scroller) return;
+                const targetX =
+                  index < 4 ? 0 : (index - 2) * TV_FILTER_STEP;
+                scroller.scrollTo({ x: Math.max(0, targetX), animated: true });
+              }}
+              isSelected={current === item}
+              style={
+                deviceType === "tv"
+                  ? dynamicStyles.tvFilterButton
+                  : dynamicStyles.categoryButton
+              }
+              textStyle={dynamicStyles.categoryText}
+              variant="ghost"
+            />
+          ))}
+        </ScrollView>
+        {options.length > 6 && deviceType === "tv" && (
+          <View pointerEvents="none" style={dynamicStyles.moreHint}>
+            <ThemedText style={dynamicStyles.moreHintText}>›</ThemedText>
+          </View>
+        )}
+      </View>
     </View>
   );
 
