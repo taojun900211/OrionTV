@@ -166,7 +166,11 @@ const VideoCard = forwardRef<View, VideoCardProps>(
           delayLongPress={1000}
         >
           <View style={styles.card}>
-            <Image source={{ uri: api.getImageProxyUrl(poster) }} style={styles.poster} />
+            <Image
+              source={{ uri: api.getImageProxyUrl(poster) }}
+              style={styles.poster}
+              resizeMode="cover"
+            />
             {isFocused && (
               <View style={styles.overlay}>
                 {isContinueWatching && (
@@ -223,7 +227,7 @@ VideoCard.displayName = "VideoCard";
 export default VideoCard;
 
 const CARD_WIDTH = 160;
-const CARD_HEIGHT = 240;
+const CARD_HEIGHT = 224;
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -231,7 +235,7 @@ const styles = StyleSheet.create({
   },
   pressable: {
     width: CARD_WIDTH + 20,
-    height: CARD_HEIGHT + 60,
+    height: CARD_HEIGHT + 30,
     justifyContent: 'center',
     alignItems: "center",
     overflow: "visible",
@@ -291,9 +295,9 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     width: CARD_WIDTH,
-    marginTop: 8,
+    marginTop: 4,
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 4,
     paddingHorizontal: 4,
   },
   infoRow: {
