@@ -45,39 +45,44 @@ const FilterChip = ({
 }) => {
   const [focused, setFocused] = useState(false);
   return (
-    <Pressable
-      onPress={onPress}
-      onFocus={() => {
-        setFocused(true);
-        onFocus?.();
-      }}
-      onBlur={() => setFocused(false)}
-      onLayout={onLayout}
-      style={{
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        marginHorizontal: 3,
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: focused ? Colors.dark.primary : "transparent",
-        backgroundColor: selected
-          ? Colors.dark.primary
-          : focused
-          ? "rgba(255,255,255,0.16)"
-          : "transparent",
-      }}
-    >
-      <Text
-        numberOfLines={1}
+    <View style={{ marginHorizontal: 3 }}>
+      <Pressable
+        // Android TV 上裸 Pressable 默认拿不到遥控焦点，必须显式 focusable，
+        // 否则方向键会直接跳过这一整行，按确认键自然什么都不会发生
+        focusable
+        accessible
+        onPress={onPress}
+        onFocus={() => {
+          setFocused(true);
+          onFocus?.();
+        }}
+        onBlur={() => setFocused(false)}
+        onLayout={onLayout}
         style={{
-          fontSize: 12,
-          fontWeight: "500",
-          color: selected ? "#ffffff" : "#dcdcdc",
+          paddingHorizontal: 10,
+          paddingVertical: 3,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: focused ? Colors.dark.primary : "transparent",
+          backgroundColor: selected
+            ? Colors.dark.primary
+            : focused
+            ? "rgba(255,255,255,0.16)"
+            : "transparent",
         }}
       >
-        {text}
-      </Text>
-    </Pressable>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 12,
+            fontWeight: "500",
+            color: selected ? "#ffffff" : "#dcdcdc",
+          }}
+        >
+          {text}
+        </Text>
+      </Pressable>
+    </View>
   );
 };
 
