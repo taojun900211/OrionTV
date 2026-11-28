@@ -296,13 +296,13 @@ export default function HomeScreen() {
       // 只剩左边的「分类 / 类型 / 地区 / 年份」标签
       // 电视安全区边界会裁掉贴边内容，左右留够余量
       paddingHorizontal: deviceType === "tv" ? 12 : spacing,
-      height: deviceType === "tv" ? 48 : 48,
+      height: deviceType === "tv" ? 30 : 48,
     },
     filterRowWrap: {
       // 「地区」19 项一行放不下，改成换行铺两行，保证全部选项都能看见
       alignItems: "flex-start",
       height: "auto",
-      minHeight: deviceType === "tv" ? 34 : 48,
+      minHeight: deviceType === "tv" ? 30 : 48,
       paddingVertical: deviceType === "tv" ? 2 : 0,
     },
     filterWrapArea: {
@@ -334,9 +334,9 @@ export default function HomeScreen() {
     },
     filterBtn: {
       // 走回 StyledButton（和顶部导航同一套，遥控焦点/确认键有保障），
-      // 只把左右内边距收窄一点，行高 48 刚好放得下
+      // 内边距通过 innerPadding 属性压到 8/2，整颗按钮约 25 高
       marginHorizontal: 2,
-      paddingHorizontal: 2,
+      paddingHorizontal: 0,
     },
     filterBtnText: {
       fontSize: deviceType === "mobile" ? 13 : deviceType === "tv" ? 12 : 15,
@@ -380,6 +380,11 @@ export default function HomeScreen() {
         // 遥控器确认键在个别 TV 固件上只触发 pressIn、不触发 press，双保险；
         // 重复选同一项是幂等的（cacheKey 相同不会重复请求）。
         onPressIn={() => onSelect(item)}
+        // 用 StyledButton 但把内边距压到 8/2：整颗按钮约 25 高，
+        // 焦点/确认键走的是和顶部导航同一套组件（遥控器一定按得动），
+        // 同时行高只占 30，四行筛选 + 地区两行也不会把海报区挤掉
+        innerPaddingHorizontal={8}
+        innerPaddingVertical={2}
         onLayout={(e) => {
           const map = (filterPositions.current[label] ||= {});
           map[index] = e.nativeEvent.layout.x;
