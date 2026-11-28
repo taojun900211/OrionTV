@@ -41,7 +41,8 @@ export default function HomeScreen() {
   // 每一条筛选行各自的横向 ScrollView，用于遥控焦点移动时自动跟随滚动
   const filterScrollRefs = useRef<Record<string, ScrollView | null>>({});
   // TV 下每个筛选按钮固定宽度，保证按焦点序号推算滚动位置是准确的
-  const TV_FILTER_BTN_WIDTH = 124;
+  // 84 宽刚好让「类型」10 项、「年份」9 项在 1080p 一屏内排满，不用滚就能看全
+  const TV_FILTER_BTN_WIDTH = 84;
   const TV_FILTER_STEP = TV_FILTER_BTN_WIDTH + 8;
 
   const {
@@ -247,19 +248,21 @@ export default function HomeScreen() {
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
-      paddingTop: deviceType === "mobile" ? insets.top : deviceType === "tablet" ? insets.top + 20 : 40,
+      // TV 上屏幕在 dp 下只有 500 出头的高度，顶部留白必须省着用，
+      // 否则四行筛选会把下面的海报区整个挤出屏幕
+      paddingTop: deviceType === "mobile" ? insets.top : deviceType === "tablet" ? insets.top + 20 : 12,
     },
     headerContainer: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: spacing * 1.5,
-      marginBottom: spacing,
+      marginBottom: deviceType === "tv" ? 4 : spacing,
     },
     headerTitle: {
-      fontSize: deviceType === "mobile" ? 24 : deviceType === "tablet" ? 28 : 32,
+      fontSize: deviceType === "mobile" ? 24 : deviceType === "tablet" ? 28 : 20,
       fontWeight: "bold",
-      paddingTop: 16,
+      paddingTop: deviceType === "tv" ? 0 : 16,
     },
     rightHeaderButtons: {
       flexDirection: "row",
@@ -270,19 +273,19 @@ export default function HomeScreen() {
       marginLeft: spacing / 2,
     },
     categoryContainer: {
-      paddingBottom: spacing / 2,
+      paddingBottom: deviceType === "tv" ? 2 : spacing / 2,
     },
     categoryListContent: {
       paddingHorizontal: spacing,
     },
     categoryButton: {
       paddingHorizontal: deviceType === "tv" ? spacing / 4 : spacing / 2,
-      paddingVertical: spacing / 2,
+      paddingVertical: deviceType === "tv" ? 4 : spacing / 2,
       borderRadius: deviceType === "mobile" ? 6 : 8,
       marginHorizontal: deviceType === "tv" ? spacing / 4 : spacing / 2, // TV端使用更小的间距
     },
     categoryText: {
-      fontSize: deviceType === "mobile" ? 14 : 16,
+      fontSize: deviceType === "mobile" ? 14 : deviceType === "tv" ? 15 : 16,
       fontWeight: "500",
     },
     contentContainer: {
@@ -294,14 +297,14 @@ export default function HomeScreen() {
       // TV 上横向 FlatList 没有确定高度会塌成 0，导致右边的选项按钮整片不渲染，
       // 只剩左边的「分类 / 类型 / 地区 / 年份」标签
       // 电视安全区边界会裁掉贴边内容，左右留够余量
-      paddingHorizontal: deviceType === "tv" ? spacing * 1.5 : spacing,
-      height: deviceType === "tv" ? 60 : 48,
+      paddingHorizontal: deviceType === "tv" ? 12 : spacing,
+      height: deviceType === "tv" ? 40 : 48,
     },
     filterLabel: {
-      width: deviceType === "tv" ? 64 : 36,
-      fontSize: deviceType === "mobile" ? 12 : 15,
+      width: deviceType === "tv" ? 48 : 36,
+      fontSize: deviceType === "mobile" ? 12 : deviceType === "tv" ? 13 : 15,
       opacity: 0.75,
-      paddingLeft: deviceType === "tv" ? 4 : 0,
+      paddingLeft: deviceType === "tv" ? 0 : 0,
     },
     filterScrollWrap: {
       flex: 1,
@@ -317,12 +320,12 @@ export default function HomeScreen() {
       right: 0,
       top: 0,
       bottom: 0,
-      width: 24,
+      width: 20,
       justifyContent: "center",
       alignItems: "flex-end",
     },
     moreHintText: {
-      fontSize: 20,
+      fontSize: 18,
       opacity: 0.45,
     },
     filterList: {
