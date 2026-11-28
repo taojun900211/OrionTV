@@ -40,10 +40,8 @@ export default function HomeScreen() {
 
   // 每一条筛选行各自的横向 ScrollView，用于遥控焦点移动时自动跟随滚动
   const filterScrollRefs = useRef<Record<string, ScrollView | null>>({});
-  // TV 下每个筛选按钮固定宽度，保证按焦点序号推算滚动位置是准确的
-  // 84 宽刚好让「类型」10 项、「年份」9 项在 1080p 一屏内排满，不用滚就能看全
-  const TV_FILTER_BTN_WIDTH = 84;
-  const TV_FILTER_STEP = TV_FILTER_BTN_WIDTH + 8;
+  // 每个筛选按钮实测的 x 坐标，焦点走到屏幕外时按真实坐标滚过去（按钮宽度随文字自适应）
+  const filterPositions = useRef<Record<string, Record<number, number>>>({});
 
   const {
     categories,
@@ -298,7 +296,20 @@ export default function HomeScreen() {
       // 只剩左边的「分类 / 类型 / 地区 / 年份」标签
       // 电视安全区边界会裁掉贴边内容，左右留够余量
       paddingHorizontal: deviceType === "tv" ? 12 : spacing,
-      height: deviceType === "tv" ? 40 : 48,
+      height: deviceType === "tv" ? 44 : 48,
+    },
+    filterRowWrap: {
+      // 「地区」19 项一行放不下，改成换行铺两行，保证全部选项都能看见
+      alignItems: "flex-start",
+      height: "auto",
+      minHeight: deviceType === "tv" ? 44 : 48,
+      paddingVertical: deviceType === "tv" ? 2 : 0,
+    },
+    filterWrapArea: {
+      flex: 1,
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
     },
     filterLabel: {
       width: deviceType === "tv" ? 48 : 36,
@@ -312,8 +323,14 @@ export default function HomeScreen() {
       justifyContent: "center",
     },
     tvFilterButton: {
-      width: TV_FILTER_BTN_WIDTH,
-      marginHorizontal: 4,
+      // 宽度交给文字自适应：2 字的「全部」和 6 字的「2020年代」都能完整显示
+      marginHorizontal: 3,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    filterOptionText: {
+      fontSize: deviceType === "mobile" ? 13 : deviceType === "tv" ? 12 : 15,
+      textAlign: "center",
     },
     moreHint: {
       position: "absolute",
@@ -342,57 +359,80 @@ export default function HomeScreen() {
     label: string,
     options: string[],
     current: string,
-    onSelect: (value: string) => void
-  ) => (
-    <View style={dynamicStyles.filterRow}>
-      <ThemedText style={dynamicStyles.filterLabel}>{label}</ThemedText>
-      <View style={dynamicStyles.filterScrollWrap}>
-        <ScrollView
-          ref={(r) => {
-            filterScrollRefs.current[label] = r;
-          }}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          removeClippedSubviews={false}
-          contentContainerStyle={[
-            dynamicStyles.categoryListContent,
-            { alignItems: "center" },
-          ]}
-          style={dynamicStyles.filterList}
-        >
-          {options.map((item, index) => (
-            <StyledButton
-              key={`${label}-${item}`}
-              text={item}
-              onPress={() => onSelect(item)}
-              // 焦点走到屏幕外时自动把这一行横向滚过去，否则右侧选项永远看不到
-              onFocus={() => {
-                if (deviceType !== "tv") return;
-                const scroller = filterScrollRefs.current[label];
-                if (!scroller) return;
-                const targetX =
-                  index < 4 ? 0 : (index - 2) * TV_FILTER_STEP;
-                scroller.scrollTo({ x: Math.max(0, targetX), animated: true });
+    onSelect: (value: string) => void,
+    wrap = false
+  ) => {
+    const button = (item: string, index: number) => (
+      <StyledButton
+        key={`${label}-${item}`}
+        text={item}
+        onPress={() => onSelect(item)}
+        onLayout={(e) => {
+          const map = (filterPositions.current[label] ||= {});
+          map[index] = e.nativeEvent.layout.x;
+        }}
+        // 焦点走到屏幕外时按实测坐标把这一行横向滚过去，否则右侧选项永远看不到
+        onFocus={() => {
+          if (deviceType !== "tv" || wrap) return;
+          const scroller = filterScrollRefs.current[label];
+          if (!scroller) return;
+          const x = filterPositions.current[label]?.[index] ?? 0;
+          scroller.scrollTo({ x: Math.max(0, x - 60), animated: true });
+        }}
+        isSelected={current === item}
+        style={
+          deviceType === "tv"
+            ? dynamicStyles.tvFilterButton
+            : dynamicStyles.categoryButton
+        }
+        textStyle={
+          deviceType === "tv"
+            ? dynamicStyles.filterOptionText
+            : dynamicStyles.categoryText
+        }
+        variant="ghost"
+      />
+    );
+
+    return (
+      <View
+        style={[
+          dynamicStyles.filterRow,
+          wrap && dynamicStyles.filterRowWrap,
+        ]}
+      >
+        <ThemedText style={dynamicStyles.filterLabel}>{label}</ThemedText>
+        {wrap ? (
+          <View style={dynamicStyles.filterWrapArea}>
+            {options.map((item, index) => button(item, index))}
+          </View>
+        ) : (
+          <View style={dynamicStyles.filterScrollWrap}>
+            <ScrollView
+              ref={(r) => {
+                filterScrollRefs.current[label] = r;
               }}
-              isSelected={current === item}
-              style={
-                deviceType === "tv"
-                  ? dynamicStyles.tvFilterButton
-                  : dynamicStyles.categoryButton
-              }
-              textStyle={dynamicStyles.categoryText}
-              variant="ghost"
-            />
-          ))}
-        </ScrollView>
-        {options.length > 6 && deviceType === "tv" && (
-          <View pointerEvents="none" style={dynamicStyles.moreHint}>
-            <ThemedText style={dynamicStyles.moreHintText}>›</ThemedText>
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              removeClippedSubviews={false}
+              contentContainerStyle={[
+                dynamicStyles.categoryListContent,
+                { alignItems: "center" },
+              ]}
+              style={dynamicStyles.filterList}
+            >
+              {options.map((item, index) => button(item, index))}
+            </ScrollView>
+            {options.length > 6 && deviceType === "tv" && (
+              <View pointerEvents="none" style={dynamicStyles.moreHint}>
+                <ThemedText style={dynamicStyles.moreHintText}>›</ThemedText>
+              </View>
+            )}
           </View>
         )}
       </View>
-    </View>
-  );
+    );
+  };
 
   const content = (
     <ThemedView style={[commonStyles.container, dynamicStyles.container]}>
@@ -436,7 +476,8 @@ export default function HomeScreen() {
             REGION_OPTIONS,
             selectedCategory.filterRegion || "全部",
             (value) =>
-              selectCategory({ ...selectedCategory, filterRegion: value })
+              selectCategory({ ...selectedCategory, filterRegion: value }),
+            true
           )}
           {renderFilterRow(
             "年份",
