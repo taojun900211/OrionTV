@@ -12,10 +12,14 @@ interface StyledButtonProps extends PressableProps {
   isSelected?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  // 筛选行这类需要压扁的场合用：内边距和字号可调，默认仍是原来的 16/10/16
+  innerPaddingHorizontal?: number;
+  innerPaddingVertical?: number;
+  fontSize?: number;
 }
 
 export const StyledButton = forwardRef<View, StyledButtonProps>(
-  ({ children, text, variant = "default", isSelected = false, style, textStyle, onFocus, onBlur, ...rest }, ref) => {
+  ({ children, text, variant = "default", isSelected = false, style, textStyle, onFocus, onBlur, innerPaddingHorizontal = 16, innerPaddingVertical = 10, fontSize = 16, ...rest }, ref) => {
     const colorScheme = "dark";
     const colors = Colors[colorScheme];
     const [isFocused, setIsFocused] = React.useState(false);
@@ -76,8 +80,8 @@ export const StyledButton = forwardRef<View, StyledButtonProps>(
 
     const styles = StyleSheet.create({
       button: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: innerPaddingHorizontal,
+        paddingVertical: innerPaddingVertical,
         borderRadius: 8,
         borderWidth: 2,
         borderColor: "transparent",
@@ -98,7 +102,7 @@ export const StyledButton = forwardRef<View, StyledButtonProps>(
         backgroundColor: colors.tint,
       },
       text: {
-        fontSize: 16,
+        fontSize: fontSize,
         fontWeight: "500",
         color: colors.text,
       },
