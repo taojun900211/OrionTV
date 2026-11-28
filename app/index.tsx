@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, FlatList, Pressable, Animated, StatusBar, Platform, BackHandler, ToastAndroid, ScrollView } from "react-native";
+import { View, StyleSheet, ActivityIndicator, FlatList, Pressable, Animated, StatusBar, Platform, BackHandler, ToastAndroid, ScrollView, Text, LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -25,6 +25,61 @@ import { useApiConfig, getApiConfigErrorMessage } from "@/hooks/useApiConfig";
 import { Colors } from "@/constants/Colors";
 
 const LOAD_MORE_THRESHOLD = 200;
+
+// 筛选行专用的小药丸按钮。
+// 不用 StyledButton 是因为它的内边距写死为上下各 10、左右各 16，
+// 一行行高被撑到 41 以上，四行筛选在 500 来 dp 的电视屏上会把海报区挤没。
+// 这里把上下内边距压到 3，整颗按钮约 27 高，四行筛选只占 34×4。
+const FilterChip = ({
+  text,
+  selected,
+  onPress,
+  onFocus,
+  onLayout,
+}: {
+  text: string;
+  selected: boolean;
+  onPress: () => void;
+  onFocus?: () => void;
+  onLayout?: (e: LayoutChangeEvent) => void;
+}) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onFocus={() => {
+        setFocused(true);
+        onFocus?.();
+      }}
+      onBlur={() => setFocused(false)}
+      onLayout={onLayout}
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        marginHorizontal: 3,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: focused ? Colors.dark.primary : "transparent",
+        backgroundColor: selected
+          ? Colors.dark.primary
+          : focused
+          ? "rgba(255,255,255,0.16)"
+          : "transparent",
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 12,
+          fontWeight: "500",
+          color: selected ? "#ffffff" : "#dcdcdc",
+        }}
+      >
+        {text}
+      </Text>
+    </Pressable>
+  );
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -296,13 +351,13 @@ export default function HomeScreen() {
       // 只剩左边的「分类 / 类型 / 地区 / 年份」标签
       // 电视安全区边界会裁掉贴边内容，左右留够余量
       paddingHorizontal: deviceType === "tv" ? 12 : spacing,
-      height: deviceType === "tv" ? 44 : 48,
+      height: deviceType === "tv" ? 34 : 48,
     },
     filterRowWrap: {
       // 「地区」19 项一行放不下，改成换行铺两行，保证全部选项都能看见
       alignItems: "flex-start",
       height: "auto",
-      minHeight: deviceType === "tv" ? 44 : 48,
+      minHeight: deviceType === "tv" ? 34 : 48,
       paddingVertical: deviceType === "tv" ? 2 : 0,
     },
     filterWrapArea: {
@@ -312,8 +367,8 @@ export default function HomeScreen() {
       alignItems: "center",
     },
     filterLabel: {
-      width: deviceType === "tv" ? 48 : 36,
-      fontSize: deviceType === "mobile" ? 12 : deviceType === "tv" ? 13 : 15,
+      width: deviceType === "tv" ? 44 : 36,
+      fontSize: deviceType === "mobile" ? 12 : deviceType === "tv" ? 12 : 15,
       opacity: 0.75,
       paddingLeft: deviceType === "tv" ? 0 : 0,
     },
@@ -363,9 +418,10 @@ export default function HomeScreen() {
     wrap = false
   ) => {
     const button = (item: string, index: number) => (
-      <StyledButton
+      <FilterChip
         key={`${label}-${item}`}
         text={item}
+        selected={current === item}
         onPress={() => onSelect(item)}
         onLayout={(e) => {
           const map = (filterPositions.current[label] ||= {});
@@ -379,18 +435,6 @@ export default function HomeScreen() {
           const x = filterPositions.current[label]?.[index] ?? 0;
           scroller.scrollTo({ x: Math.max(0, x - 60), animated: true });
         }}
-        isSelected={current === item}
-        style={
-          deviceType === "tv"
-            ? dynamicStyles.tvFilterButton
-            : dynamicStyles.categoryButton
-        }
-        textStyle={
-          deviceType === "tv"
-            ? dynamicStyles.filterOptionText
-            : dynamicStyles.categoryText
-        }
-        variant="ghost"
       />
     );
 
